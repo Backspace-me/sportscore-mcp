@@ -1,0 +1,7 @@
+.github/
+tests/
+*.test.js
+.editorconfig
+.prettierrc*
+.eslintrc*
+.gitignore
