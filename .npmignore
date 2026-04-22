@@ -5,3 +5,4 @@ tests/
 .prettierrc*
 .eslintrc*
 .gitignore
+HANDOFF.md
