@@ -8,7 +8,7 @@ This repo is built, committed, and functionally verified (tools/list and tools/c
 # From this directory (C:\Users\cancu\AppData\Local\Temp\claude-sportscore-mcp)
 
 # Option A — use gh CLI if you have it:
-gh repo create SportScoreLiveSports/sportscore-mcp \
+gh repo create Backspace-me/sportscore-mcp \
   --public \
   --description "MCP server for SportScore — live scores, standings, top scorers, brackets for football, basketball, cricket, tennis. Free public API." \
   --homepage "https://sportscore.com/developers/" \
@@ -16,12 +16,12 @@ gh repo create SportScoreLiveSports/sportscore-mcp \
   --push
 
 # Option B — manually:
-#   1. Go to https://github.com/organizations/SportScoreLiveSports/repositories/new
+#   1. Go to https://github.com/organizations/Backspace-me/repositories/new
 #      Name: sportscore-mcp
 #      Visibility: Public
 #      (no README, no license, no gitignore — we already have them)
 #   2. Back here:
-git remote add origin https://github.com/SportScoreLiveSports/sportscore-mcp.git
+git remote add origin https://github.com/Backspace-me/sportscore-mcp.git
 git push -u origin main
 ```
 
@@ -88,7 +88,7 @@ URL: https://smithery.ai/
 
 1. Sign in with GitHub.
 2. Click "Submit a server" / "Add server".
-3. Point at https://github.com/SportScoreLiveSports/sportscore-mcp
+3. Point at https://github.com/Backspace-me/sportscore-mcp
 4. Smithery autodetects config from `package.json` and the MCP server manifest.
 
 ### 4d. Claude MCP directory (glama.ai, claudemcp.com, awesome-mcp-servers)

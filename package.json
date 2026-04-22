@@ -19,10 +19,10 @@
   "homepage": "https://sportscore.com/developers/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SportScoreLiveSports/sportscore-mcp.git"
+    "url": "git+https://github.com/Backspace-me/sportscore-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/SportScoreLiveSports/sportscore-mcp/issues",
+    "url": "https://github.com/Backspace-me/sportscore-mcp/issues",
     "email": "api@sportscore.com"
   },
   "license": "MIT",

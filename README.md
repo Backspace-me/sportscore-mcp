@@ -88,4 +88,4 @@ MIT — see [LICENSE](./LICENSE).
 - [Developer portal + REST API docs](https://sportscore.com/developers/)
 - [OpenAPI 3.0 spec](https://sportscore.com/developers/openapi.yaml)
 - [API terms of use](https://sportscore.com/developers/terms/)
-- [Report an issue](https://github.com/SportScoreLiveSports/sportscore-mcp/issues)
+- [Report an issue](https://github.com/Backspace-me/sportscore-mcp/issues)
