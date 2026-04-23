@@ -1,6 +1,6 @@
 {
   "name": "sportscore-mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "mcpName": "io.github.Backspace-me/sportscore-mcp",
   "description": "MCP server for SportScore — live scores, match details, standings, top scorers, brackets and player stats across football, basketball, cricket and tennis. Free public API, CORS-open, no API key.",
   "keywords": [
@@ -44,9 +44,11 @@
   },
   "scripts": {
     "start": "node src/index.js",
+    "start:http": "node src/index.js",
     "test": "node --test tests/"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "express": "^4.21.0"
   }
 }

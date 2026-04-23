@@ -3,13 +3,21 @@
  * sportscore-mcp — MCP server for SportScore's public sports-data API.
  *
  * Exposes 8 tools that map 1:1 to the SportScore REST endpoints documented at
- * https://sportscore.com/developers/. The transport is stdio (the standard
- * MCP transport for local hosts like Claude Desktop / Cursor).
+ * https://sportscore.com/developers/.
+ *
+ * Two transports — pick at startup via env:
+ *   • stdio (default) — for local MCP hosts like Claude Desktop, Cursor, Zed.
+ *   • Streamable HTTP — for remote / hosted deployments (Glama connectors,
+ *     browser hosts). Enabled by setting SPORTSCORE_HTTP_PORT.
  *
  * Environment variables:
- *   SPORTSCORE_API_BASE  Override the API base URL. Defaults to
- *                        https://sportscore.com
- *   SPORTSCORE_UA        Override the User-Agent string sent with requests.
+ *   SPORTSCORE_API_BASE   Override the API base URL. Defaults to
+ *                         https://sportscore.com
+ *   SPORTSCORE_UA         Override the User-Agent string sent with requests.
+ *   SPORTSCORE_HTTP_PORT  If set, run as a Streamable HTTP server on this
+ *                         port instead of stdio. POST / GET /mcp.
+ *   SPORTSCORE_HTTP_HOST  Bind address when SPORTSCORE_HTTP_PORT is set.
+ *                         Defaults to 127.0.0.1 (expose via reverse proxy).
  *
  * Attribution: every tool response carries a `source` field pointing at
  * sportscore.com and a plain-English attribution line. Hosts typically
@@ -19,8 +27,10 @@
  * for the paid tier (removes the attribution requirement).
  */
 
+import { randomUUID } from "node:crypto";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -200,67 +210,147 @@ function attributionFooter() {
   };
 }
 
-// --- MCP server -------------------------------------------------------------
+// --- MCP server factory -----------------------------------------------------
 
-const server = new Server(
-  { name: "sportscore-mcp", version: "0.1.0" },
-  { capabilities: { tools: {} } },
-);
+// Every HTTP session gets its own Server instance (the SDK expects one server
+// per transport). Stdio uses a single instance. Same handlers in both cases —
+// factoring them here keeps the two transports in lockstep.
+function createServer() {
+  const server = new Server(
+    { name: "sportscore-mcp", version: "0.2.0" },
+    { capabilities: { tools: {} } },
+  );
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })),
-}));
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema })),
+  }));
 
-server.setRequestHandler(CallToolRequestSchema, async (req) => {
-  const { name, arguments: rawArgs } = req.params;
-  const tool = TOOL_BY_NAME.get(name);
-  if (!tool) {
-    return {
-      isError: true,
-      content: [{ type: "text", text: `Unknown tool: ${name}` }],
+  server.setRequestHandler(CallToolRequestSchema, async (req) => {
+    const { name, arguments: rawArgs } = req.params;
+    const tool = TOOL_BY_NAME.get(name);
+    if (!tool) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Unknown tool: ${name}` }],
+      };
+    }
+    const args = rawArgs ?? {};
+    if (args.sport && !SPORTS.includes(args.sport)) {
+      return {
+        isError: true,
+        content: [
+          { type: "text", text: `Invalid sport '${args.sport}'. Must be one of: ${SPORTS.join(", ")}.` },
+        ],
+      };
+    }
+
+    const params = tool.paramMap(args);
+    let result;
+    try {
+      result = await callApi(tool.path, params);
+    } catch (err) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Network error calling SportScore API: ${err.message}` }],
+      };
+    }
+
+    const envelope = {
+      tool: name,
+      request_url: result.url,
+      http_status: result.status,
+      data: result.body,
+      ...attributionFooter(),
     };
-  }
-  const args = rawArgs ?? {};
-  if (args.sport && !SPORTS.includes(args.sport)) {
+
     return {
-      isError: true,
-      content: [
-        { type: "text", text: `Invalid sport '${args.sport}'. Must be one of: ${SPORTS.join(", ")}.` },
-      ],
+      content: [{ type: "text", text: JSON.stringify(envelope, null, 2) }],
+      isError: result.status >= 400,
     };
-  }
+  });
 
-  const params = tool.paramMap(args);
-  let result;
-  try {
-    result = await callApi(tool.path, params);
-  } catch (err) {
-    return {
-      isError: true,
-      content: [{ type: "text", text: `Network error calling SportScore API: ${err.message}` }],
-    };
-  }
+  return server;
+}
 
-  const envelope = {
-    tool: name,
-    request_url: result.url,
-    http_status: result.status,
-    data: result.body,
-    ...attributionFooter(),
-  };
+// --- Transports -------------------------------------------------------------
 
-  return {
-    content: [{ type: "text", text: JSON.stringify(envelope, null, 2) }],
-    isError: result.status >= 400,
-  };
-});
-
-async function main() {
+async function runStdio() {
+  const server = createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
   // No stdout logging — that's reserved for the MCP protocol on stdio.
-  // Anything we want to log goes to stderr.
-  process.stderr.write(`sportscore-mcp connected (API=${API_BASE})\n`);
+  process.stderr.write(`sportscore-mcp connected (stdio, API=${API_BASE})\n`);
+}
+
+async function runHttp(port, host) {
+  // Lazy-load express — only pulled in when actually running in HTTP mode,
+  // so the stdio install (the common case) stays zero-framework.
+  const { default: express } = await import("express");
+
+  const app = express();
+  app.use(express.json({ limit: "1mb" }));
+
+  // Health endpoint — useful for load balancers and uptime monitors. Does
+  // not speak MCP, just returns 200 + a short JSON blob.
+  app.get("/healthz", (_req, res) => {
+    res.json({ ok: true, service: "sportscore-mcp", api: API_BASE });
+  });
+
+  // Sessions map: one transport + server per MCP session id. The SDK handles
+  // session lifecycle via the `Mcp-Session-Id` header.
+  const sessions = new Map();
+
+  async function handleRequest(req, res) {
+    try {
+      const sessionId = req.headers["mcp-session-id"];
+      let transport;
+      if (sessionId && sessions.has(sessionId)) {
+        transport = sessions.get(sessionId);
+      } else {
+        // New session: create a fresh Server + transport pair.
+        transport = new StreamableHTTPServerTransport({
+          sessionIdGenerator: () => randomUUID(),
+          onsessioninitialized: (id) => {
+            sessions.set(id, transport);
+          },
+        });
+        transport.onclose = () => {
+          if (transport.sessionId) sessions.delete(transport.sessionId);
+        };
+        const server = createServer();
+        await server.connect(transport);
+      }
+      await transport.handleRequest(req, res, req.body);
+    } catch (err) {
+      process.stderr.write(`sportscore-mcp http error: ${err?.stack || err}\n`);
+      if (!res.headersSent) res.status(500).json({ error: "internal_error" });
+    }
+  }
+
+  app.post("/mcp", handleRequest);
+  app.get("/mcp", handleRequest);
+  app.delete("/mcp", handleRequest);
+
+  app.listen(port, host, () => {
+    process.stderr.write(
+      `sportscore-mcp connected (http, bound=${host}:${port}, API=${API_BASE})\n`,
+    );
+  });
+}
+
+async function main() {
+  const httpPort = process.env.SPORTSCORE_HTTP_PORT;
+  if (httpPort) {
+    const port = parseInt(httpPort, 10);
+    if (!Number.isFinite(port) || port <= 0 || port > 65535) {
+      process.stderr.write(`sportscore-mcp: invalid SPORTSCORE_HTTP_PORT=${httpPort}\n`);
+      process.exit(1);
+    }
+    const host = process.env.SPORTSCORE_HTTP_HOST || "127.0.0.1";
+    await runHttp(port, host);
+  } else {
+    await runStdio();
+  }
 }
 
 main().catch((err) => {
