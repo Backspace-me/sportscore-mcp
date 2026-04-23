@@ -11,3 +11,11 @@ dist/
 coverage/
 .nyc_output/
 *.tgz
+
+# MCP Registry publishing tool (downloaded, not part of source)
+mcp-publisher
+mcp-publisher.exe
+mcp-publisher.tar.gz
+
+# Locally-stored HANDOFF doc (sensitive paths)
+HANDOFF.md

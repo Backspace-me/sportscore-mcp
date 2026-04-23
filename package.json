@@ -1,6 +1,7 @@
 {
   "name": "sportscore-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "mcpName": "io.github.Backspace-me/sportscore-mcp",
   "description": "MCP server for SportScore — live scores, match details, standings, top scorers, brackets and player stats across football, basketball, cricket and tennis. Free public API, CORS-open, no API key.",
   "keywords": [
     "mcp",
