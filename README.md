@@ -2,6 +2,8 @@
 
 MCP server for [SportScore](https://sportscore.com/) — live scores, match details, standings, top scorers, brackets and player stats across **football**, **basketball**, **cricket** and **tennis**. Free public API, CORS-open, no API key.
 
+[![Backspace-me/sportscore-mcp MCP server](https://glama.ai/mcp/servers/Backspace-me/sportscore-mcp/badges/score.svg)](https://glama.ai/mcp/servers/Backspace-me/sportscore-mcp)
+
 Works in any [Model Context Protocol](https://modelcontextprotocol.io/) host: Claude Desktop, Cursor, Continue, Zed, and custom MCP clients.
 
 ## What it gives your AI assistant

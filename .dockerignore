@@ -1,0 +1,36 @@
+# Keep the Docker build context tiny — node_modules is re-installed by
+# `npm ci` inside the build stage and tests/dev files don't belong in
+# the image.
+
+.git
+.gitignore
+.github
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local runtime artefacts
+dist
+build
+coverage
+.nyc_output
+
+# Dev tooling + editor state
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Test files — not needed in the production image
+tests
+test
+*.test.js
+
+# Publisher binaries + internal handoff docs (already gitignored but be
+# defensive)
+mcp-publisher
+mcp-publisher.exe
+mcp-publisher.tar.gz
+HANDOFF.md
