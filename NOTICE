@@ -1,0 +1,25 @@
+sportscore-mcp
+Copyright (c) 2026 SportScore
+
+This software (the "sportscore-mcp" MCP server code) is licensed under the MIT
+License — see the LICENSE file.
+
+-----------------------------------------------------------------------------
+Note on the remote SportScore API
+-----------------------------------------------------------------------------
+
+The MIT license in LICENSE covers THIS software only (the MCP server code).
+
+The remote SportScore API this server talks to is a separate service and is
+governed by the SportScore API Terms of Use:
+
+    https://sportscore.com/developers/terms/
+
+On the free tier those terms require a visible "Powered by SportScore"
+dofollow backlink on any page or surface that renders data returned from the
+API. The MCP server defaults include a `source` attribution field and a
+plain-English attribution line in every tool response to make compliance the
+default behaviour — please leave it in place unless you hold a commercial /
+white-label agreement that removes the attribution requirement.
+
+Commercial / white-label use: api@sportscore.com
