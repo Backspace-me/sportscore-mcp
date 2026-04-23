@@ -1,0 +1,49 @@
+# Smithery configuration for sportscore-mcp
+# https://smithery.ai/docs/config
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      SPORTSCORE_API_BASE:
+        type: string
+        default: "https://sportscore.com"
+        description: "Override the API base URL. Useful for staging or self-hosted deployments."
+      SPORTSCORE_USER_AGENT:
+        type: string
+        description: "Override the User-Agent string sent to the SportScore API."
+    additionalProperties: false
+  commandFunction: |-
+    (config) => ({
+      command: "npx",
+      args: ["-y", "sportscore-mcp"],
+      env: {
+        ...(config.SPORTSCORE_API_BASE ? { SPORTSCORE_API_BASE: config.SPORTSCORE_API_BASE } : {}),
+        ...(config.SPORTSCORE_USER_AGENT ? { SPORTSCORE_USER_AGENT: config.SPORTSCORE_USER_AGENT } : {})
+      }
+    })
+
+metadata:
+  name: "SportScore MCP"
+  description: |-
+    Live scores, match details, standings, top scorers, brackets and player
+    stats across football, basketball, cricket and tennis. Backed by the free
+    SportScore public API (CORS-open, no API key required). Free forever in
+    exchange for a dofollow "Powered by SportScore" backlink on pages that
+    render the data.
+  homepage: "https://sportscore.com/developers/"
+  repository: "https://github.com/Backspace-me/sportscore-mcp"
+  license: "MIT"
+  categories:
+    - data
+    - api
+    - sports
+  tags:
+    - football
+    - soccer
+    - basketball
+    - cricket
+    - tennis
+    - live-scores
+    - free-api
