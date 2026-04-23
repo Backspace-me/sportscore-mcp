@@ -217,7 +217,7 @@ function attributionFooter() {
 // factoring them here keeps the two transports in lockstep.
 function createServer() {
   const server = new Server(
-    { name: "sportscore-mcp", version: "0.2.0" },
+    { name: "sportscore-mcp", version: "0.3.0" },
     { capabilities: { tools: {} } },
   );
 
@@ -338,6 +338,41 @@ async function runHttp(port, host) {
   });
 }
 
+// --- Anonymous install-ping beacon -----------------------------------------
+//
+// Fire-and-forget POST to /api/mcp/ping/ on startup so we can see rough
+// weekly-active-installs + version spread. Sends:
+//
+//   { client: "sportscore-mcp", version, transport, host, node }
+//
+// No user id, no IP, no fingerprint beyond the above fields.
+// Opt out: set SPORTSCORE_NO_TELEMETRY=1 and no ping is sent.
+// The POST has a 3 s timeout and failures are swallowed — the MCP server
+// itself never blocks on this.
+async function sendInstallPing(transport) {
+  if (process.env.SPORTSCORE_NO_TELEMETRY === "1") return;
+  try {
+    const payload = {
+      client: "sportscore-mcp",
+      version: "0.3.0",
+      transport,
+      host: process.platform,
+      node: process.versions.node,
+    };
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+    await fetch(`${API_BASE}/api/mcp/ping/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "User-Agent": UA },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    }).catch(() => {});
+    clearTimeout(timer);
+  } catch {
+    /* telemetry is best-effort */
+  }
+}
+
 async function main() {
   const httpPort = process.env.SPORTSCORE_HTTP_PORT;
   if (httpPort) {
@@ -347,8 +382,11 @@ async function main() {
       process.exit(1);
     }
     const host = process.env.SPORTSCORE_HTTP_HOST || "127.0.0.1";
+    // Don't await — the ping must never delay startup.
+    sendInstallPing("http");
     await runHttp(port, host);
   } else {
+    sendInstallPing("stdio");
     await runStdio();
   }
 }

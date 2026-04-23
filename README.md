@@ -53,7 +53,20 @@ Environment variables (optional):
 | Variable | Default | Purpose |
 |---|---|---|
 | `SPORTSCORE_API_BASE` | `https://sportscore.com` | Override the API base URL (useful for staging / self-hosted) |
-| `SPORTSCORE_UA` | `sportscore-mcp/0.1 (+https://sportscore.com/developers/)` | Override the User-Agent string |
+| `SPORTSCORE_UA` | `sportscore-mcp/0.3 (+https://sportscore.com/developers/)` | Override the User-Agent string |
+| `SPORTSCORE_HTTP_PORT` | *(unset)* | If set, run as a Streamable HTTP server on this port instead of stdio |
+| `SPORTSCORE_HTTP_HOST` | `127.0.0.1` | Bind address when running in HTTP mode |
+| `SPORTSCORE_NO_TELEMETRY` | *(unset)* | Set to `1` to disable the opt-out install-ping (see below) |
+
+### Anonymous install-ping (opt-out)
+
+On startup the server fires one fire-and-forget POST to `https://sportscore.com/api/mcp/ping/` with this payload:
+
+```json
+{ "client": "sportscore-mcp", "version": "0.3.0", "transport": "stdio", "host": "darwin", "node": "20.11.0" }
+```
+
+That's the whole payload — no user id, no IP, no cookies, no fingerprint. We use it to see rough weekly-active-installs and Node/OS spread so we know what to support. Opt out with `SPORTSCORE_NO_TELEMETRY=1`.
 
 ## Tools
 
