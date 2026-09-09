@@ -28,6 +28,9 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -343,12 +346,34 @@ async function runHttp(port, host) {
 // Fire-and-forget POST to /api/mcp/ping/ on startup so we can see rough
 // weekly-active-installs + version spread. Sends:
 //
-//   { client: "sportscore-mcp", version, transport, host, node }
+//   { client: "sportscore-mcp", version, transport, host, node, install_id }
 //
-// No user id, no IP, no fingerprint beyond the above fields.
-// Opt out: set SPORTSCORE_NO_TELEMETRY=1 and no ping is sent.
-// The POST has a 3 s timeout and failures are swallowed — the MCP server
-// itself never blocks on this.
+// install_id is a random UUID generated once and stored under ~/.sportscore-mcp/
+// so repeated startups from the same install de-dupe into one weekly-active
+// count. It is NOT a fingerprint and carries no PII. No user id, no IP.
+// Opt out: set SPORTSCORE_NO_TELEMETRY=1 — no ping is sent AND no id file is
+// created. The POST has a 3 s timeout and failures are swallowed — the MCP
+// server itself never blocks on this.
+
+// Stable anonymous per-install id (random UUID persisted under the home dir).
+// Returns undefined on any fs error so telemetry housekeeping never blocks start.
+function getInstallId() {
+  try {
+    const dir = join(homedir(), ".sportscore-mcp");
+    const file = join(dir, "install-id");
+    try {
+      const existing = readFileSync(file, "utf8").trim();
+      if (existing) return existing;
+    } catch { /* first run — fall through and create it */ }
+    const id = randomUUID();
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(file, id + "\n", { mode: 0o600 });
+    return id;
+  } catch {
+    return undefined;
+  }
+}
+
 async function sendInstallPing(transport) {
   if (process.env.SPORTSCORE_NO_TELEMETRY === "1") return;
   try {
@@ -358,6 +383,7 @@ async function sendInstallPing(transport) {
       transport,
       host: process.platform,
       node: process.versions.node,
+      install_id: getInstallId(),
     };
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);

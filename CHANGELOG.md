@@ -5,12 +5,16 @@ All notable changes to sportscore-mcp will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0] — 2026-04-24
+## [0.3.0] — 2026-09-09
 
 ### Added
 - Fire-and-forget install-ping on startup to `https://sportscore.com/api/mcp/ping/`
-  with `{client, version, transport, host, node}`. Lets us see rough
+  with `{client, version, transport, host, node, install_id}`. Lets us see rough
   weekly-active-installs and Node/OS spread.
+- Anonymous `install_id` — a random UUID generated once and stored under
+  `~/.sportscore-mcp/install-id` so repeated startups from the same machine
+  de-dupe into a real weekly-active-installs count. Not a fingerprint, carries
+  no PII, and is never created when `SPORTSCORE_NO_TELEMETRY=1`.
 - New env var `SPORTSCORE_NO_TELEMETRY=1` to opt out of the install-ping.
 - Documented `SPORTSCORE_HTTP_PORT` and `SPORTSCORE_HTTP_HOST` in the README
   config table (already supported, previously only in code comments).
