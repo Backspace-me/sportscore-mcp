@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/backspace-me-sportscore-mcp-badge.png)](https://mseep.ai/app/backspace-me-sportscore-mcp)
+
 # sportscore-mcp
 
 MCP server for [SportScore](https://sportscore.com/) — live scores, match details, standings, top scorers, brackets and player stats across **football**, **basketball**, **cricket** and **tennis**. Free public API, CORS-open, no API key.
